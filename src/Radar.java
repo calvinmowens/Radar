@@ -29,7 +29,11 @@ public class Radar extends JFrame {
     static JButton newAppt;
     static JLabel view;
 
-    static JLabel status;
+    static JLabel statusBarText;
+
+    // Appointment Creation
+    static JPanel newApptCP;
+    static JDialog newApptDialog;
 
     // create a frame
     static JFrame f;
@@ -52,20 +56,20 @@ public class Radar extends JFrame {
         // create menu items
         exit = new JMenuItem("Exit");
         exit.addActionListener(e -> {
-            status.setText("EXIT, BYE BYE");
+            statusBarText.setText("EXIT, BYE BYE");
             System.out.println("Frame disposed.");
             f.dispose();
         });
 
         day = new JMenuItem("Day");
         day.addActionListener(e -> {
-            status.setText("VIEW CHANGED: DAY");
+            statusBarText.setText("VIEW CHANGED: DAY");
             currView = 0;
             updateView();
         });
         month = new JMenuItem("Month");
         month.addActionListener(e -> {
-            status.setText("VIEW CHANGED: MONTH");
+            statusBarText.setText("VIEW CHANGED: MONTH");
             currView = 1;
             updateView();
         });
@@ -79,7 +83,7 @@ public class Radar extends JFrame {
         mb.add(file);
         mb.add(viewMenu);
 
-        status = new JLabel("STATUS TEXT HERE", SwingConstants.CENTER);
+        statusBarText = new JLabel("STATUS TEXT HERE", SwingConstants.CENTER);
         view = new JLabel("Day View, DAY, DATE, YEAR");
         updateView();
 
@@ -90,7 +94,7 @@ public class Radar extends JFrame {
 
         today = new JButton("Today");
         today.addActionListener(e -> {
-            status.setText("BUTTON PRESSED: TODAY");
+            statusBarText.setText("BUTTON PRESSED: TODAY");
             date = LocalDate.now();
             updateView();
         });
@@ -98,7 +102,7 @@ public class Radar extends JFrame {
         nextPrevContainer = new JPanel(new FlowLayout());
         prev = new JButton("<");
         prev.addActionListener(e -> {
-            status.setText("BUTTON PRESSED: PREVIOUS");
+            statusBarText.setText("BUTTON PRESSED: PREVIOUS");
             if (currView == 0) {
                 date = date.minusDays(1);
             } else {
@@ -108,7 +112,7 @@ public class Radar extends JFrame {
         });
         next = new JButton(">");
         next.addActionListener(e -> {
-            status.setText("BUTTON PRESSED: NEXT");
+            statusBarText.setText("BUTTON PRESSED: NEXT");
             if (currView == 0) {
                 date = date.plusDays(1);
             } else {
@@ -120,9 +124,10 @@ public class Radar extends JFrame {
         newAppt = new JButton("+");
         newAppt.addActionListener(e -> {
             // TODO appt popup
+
         });
 
-        cp.add(status, BorderLayout.PAGE_END);
+        cp.add(statusBarText, BorderLayout.PAGE_END);
         nextPrevContainer.add(prev);
         nextPrevContainer.add(next);
         buttonContainer.add(today);
