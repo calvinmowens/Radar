@@ -51,10 +51,9 @@ public class Radar extends JFrame {
     static JFrame f;
     static JPanel cp;
 
+    public static HashMap<LocalDate, ArrayList<Event>> events = new HashMap<LocalDate, ArrayList<Event>>();
+
     public static void main(String[] args) {
-
-        HashMap<LocalDate, ArrayList<Event>> events = new HashMap<LocalDate, ArrayList<Event>>();
-
         // create a frame
         f = new JFrame("Radar");
         f.setSize(800, 800);
@@ -113,6 +112,7 @@ public class Radar extends JFrame {
 
         view.setPreferredSize( new Dimension(500, 1250));
         view.setMaximumSize(view.getPreferredSize());
+        view.setMap(events);
 
         scroll = new JScrollPane(view);
         scroll.setPreferredSize( new Dimension(500, (int)f.getBounds().getSize().getHeight()) );
@@ -159,8 +159,8 @@ public class Radar extends JFrame {
             JTextField eventName = new JTextField("New Event");
             JTextField eventDate = new JTextField(view.getDate().toString());
 //            JPanel timeContainer = new JPanel(new FlowLayout());
-            JTextField startTime = new JTextField("Start Time");
-            JTextField endTime = new JTextField("End Time");
+            JTextField startTime = new JTextField("0:00");
+            JTextField endTime = new JTextField("0:00");
             JCheckBox option1 = new JCheckBox("School");
             JCheckBox option2 = new JCheckBox("Family + Friends");
             JCheckBox option3 = new JCheckBox("Church");
@@ -190,6 +190,8 @@ public class Radar extends JFrame {
                 innerList.add(myEvent);
 
                 events.put(myEvent.eventDate,innerList);
+                view.setMap(events);
+                view.update(DAY_MONTH_SETTING);
                 System.out.println(events.get(view.getDate()));
                 statusBarText.setText(myEvent.toString());
             } else {
