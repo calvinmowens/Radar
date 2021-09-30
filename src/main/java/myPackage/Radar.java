@@ -1,6 +1,12 @@
+package main.java.myPackage;
+
 import javax.swing.*;
 import java.awt.*;
+import java.awt.event.*;
+//import java.awt.event.ActionEvent;
+//import java.awt.event.ActionListener;
 import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.HashMap;
 
@@ -11,15 +17,16 @@ public class Radar extends JFrame {
     |   Content Pane (cp)
     |   |   Container
     |   |   |   Scroll Pane
-    |   |   |   |   DayView
+    |   |   |   |   main.java.myPackage.DayView
     |   |   |   Button Container
     |   |   Status Bar
     |   |   File
      */
 
-    // DayView Object Declaration, initializes to LocalDate.now()
+    // main.java.myPackage.DayView Object Declaration, initializes to LocalDate.now()
     static JScrollPane scroll;
     static DayView view = new DayView();
+    static int timeHour = LocalDateTime.now().getHour();
 
     static JMenuBar mb;
 
@@ -113,6 +120,40 @@ public class Radar extends JFrame {
         view.setPreferredSize( new Dimension(500, 1250));
         view.setMaximumSize(view.getPreferredSize());
         view.setMap(events);
+        view.addMouseListener(new MouseAdapter() {
+            @Override
+            public void mouseClicked(MouseEvent e) {
+                System.out.println("Mouse Clicked.");
+                if (e.getClickCount() % 2 == 0) {
+
+                    System.out.println("Mouse Double-Clicked.");
+
+                    if (events.get(view.getDate()) != null) {
+                        int x = e.getX();
+                        int y = e.getY();
+                        ArrayList<Event> eventsOnDate = events.get(view.getDate());
+                        for (Event event : eventsOnDate) {
+                            if (event.rect.contains(x, y)) {
+                                eventsOnDate.remove(event);
+                                editEvent(event);
+                                return;
+                            }
+                        }
+                        System.out.println("You shouldn't be here on event clicked.");
+                        createEventTime(y);
+                    } else {
+                        int y = e.getY();
+                        timeHour = 1;
+                        createEventTime(y);
+                    }
+                }
+            }
+
+            @Override
+            public void mouseMoved(MouseEvent e) {
+                System.out.println("Mouse Dragged");
+            }
+        });
 
         scroll = new JScrollPane(view);
         scroll.setPreferredSize( new Dimension(500, (int)f.getBounds().getSize().getHeight()) );
@@ -152,52 +193,7 @@ public class Radar extends JFrame {
         });
 
         newEvent = new JButton("+");
-        newEvent.addActionListener(e -> {
-            statusBarText.setText("BUTTON PRESSED: NEW EVENT");
-
-            // Field Creation
-            JTextField eventName = new JTextField("New Event");
-            JTextField eventDate = new JTextField(view.getDate().toString());
-//            JPanel timeContainer = new JPanel(new FlowLayout());
-            JTextField startTime = new JTextField("0:00");
-            JTextField endTime = new JTextField("0:00");
-            JCheckBox option1 = new JCheckBox("School");
-            JCheckBox option2 = new JCheckBox("Family + Friends");
-            JCheckBox option3 = new JCheckBox("Church");
-            JCheckBox option4 = new JCheckBox("Vacation");
-
-            final JComponent[] inputs = new JComponent[] {
-                    new JLabel("Event Name:"),
-                    eventName,
-                    new JLabel("Event Date:"),
-                    eventDate,
-                    new JLabel("Start Time:"),
-                    startTime,
-                    new JLabel("End Time:"),
-                    endTime,
-                    option1,
-                    option2,
-                    option3,
-                    option4
-            };
-
-            int result = JOptionPane.showConfirmDialog(null, inputs, "NEW APPOINTMENT", JOptionPane.OK_CANCEL_OPTION);
-
-            if (result == JOptionPane.OK_OPTION) {
-                Event myEvent = new Event(eventName.getText(), LocalDate.parse(eventDate.getText()), startTime.getText(), endTime.getText());
-                events.computeIfAbsent(myEvent.eventDate, k -> new ArrayList<Event>());
-                ArrayList<Event> innerList = events.get(myEvent.eventDate);
-                innerList.add(myEvent);
-
-                events.put(myEvent.eventDate,innerList);
-                view.setMap(events);
-                view.update(DAY_MONTH_SETTING);
-                System.out.println(events.get(view.getDate()));
-                statusBarText.setText(myEvent.toString());
-            } else {
-                statusBarText.setText("NEW EVENT CREATION CANCELED");
-            }
-        });
+        newEvent.addActionListener(Radar::createEvent);
 
         // --------------------
         // ADD STUFF TO FRAME
@@ -223,5 +219,84 @@ public class Radar extends JFrame {
         f.setLocationByPlatform( true );
         f.pack();
         f.setVisible( true );
+    }
+
+    public static void editEvent(Event x) {
+        JTextField eventName;
+        JTextField eventDate;
+        JTextField startTime;
+        JTextField endTime;
+        JCheckBox option1;
+        JCheckBox option2;
+        JCheckBox option3;
+        JCheckBox option4;
+
+        if (x == null) {
+            // Field Creation
+            eventName = new JTextField("New Event");
+            eventDate = new JTextField(view.getDate().toString());
+//            JPanel timeContainer = new JPanel(new FlowLayout());
+            startTime = new JTextField(timeHour + ":00");
+            endTime = new JTextField(timeHour + 1 + ":00");
+            option1 = new JCheckBox("School");
+            option2 = new JCheckBox("Family + Friends");
+            option3 = new JCheckBox("Church");
+            option4 = new JCheckBox("Vacation");
+        } else {
+            // Field Creation
+            eventName = new JTextField(x.eventName);
+            eventDate = new JTextField(x.eventDate.toString());
+//            JPanel timeContainer = new JPanel(new FlowLayout());
+            startTime = new JTextField(x.startTime);
+            endTime = new JTextField(x.endTime);
+            option1 = new JCheckBox("School");
+            option2 = new JCheckBox("Family + Friends");
+            option3 = new JCheckBox("Church");
+            option4 = new JCheckBox("Vacation");
+        }
+        final JComponent[] inputs = new JComponent[] {
+                new JLabel("Event Name:"),
+                eventName,
+                new JLabel("Event Date:"),
+                eventDate,
+                new JLabel("Start Time:"),
+                startTime,
+                new JLabel("End Time:"),
+                endTime,
+                option1,
+                option2,
+                option3,
+                option4
+        };
+
+        int result = JOptionPane.showConfirmDialog(null, inputs, "NEW APPOINTMENT", JOptionPane.OK_CANCEL_OPTION);
+
+        if (result == JOptionPane.OK_OPTION && startTime.getText().compareTo(endTime.getText()) != 0) {
+            Event myEvent = new Event(eventName.getText(), LocalDate.parse(eventDate.getText()), startTime.getText(), endTime.getText());
+            events.computeIfAbsent(myEvent.eventDate, k -> new ArrayList<Event>());
+            ArrayList<Event> innerList = events.get(myEvent.eventDate);
+            innerList.add(myEvent);
+
+            events.put(myEvent.eventDate,innerList);
+            view.setMap(events);
+            view.update(DAY_MONTH_SETTING);
+            System.out.println(events.get(view.getDate()));
+            statusBarText.setText(myEvent.toString());
+        } else {
+            statusBarText.setText("NEW EVENT CREATION CANCELED");
+            timeHour = LocalDateTime.now().getHour();
+        }
+    }
+
+    public static void createEvent(AWTEvent e) {
+        editEvent(null);
+    }
+
+    public static void createEventTime(int y) {
+        y = (y - 50) / 50;
+        System.out.println(y);
+
+        Event newEvent = new Event("New Event", view.getDate(), y+":00", (y+1)+":00");
+        editEvent(newEvent);
     }
 }
