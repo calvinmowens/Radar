@@ -116,7 +116,7 @@ public class DayView extends JComponent implements MouseListener, MouseMotionLis
     }
 
     public void update(int DAY_MONTH_SETTING) {
-        System.out.println("Update view with date: " + date + ", setting: " + DAY_MONTH_SETTING);
+        System.out.println("UPDATE: Repainting DayView");
         this.repaint();
     }
 

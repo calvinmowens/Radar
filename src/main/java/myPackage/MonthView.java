@@ -13,6 +13,7 @@ public class MonthView extends JComponent implements MouseListener, MouseMotionL
     private LocalDate date;
     private LocalDateTime currentTime;
     private HashMap<LocalDate, ArrayList<Event>> events = new HashMap<LocalDate, ArrayList<Event>>();
+    private LocalDate startDateForMonth;
 
     public MonthView() {
         date = LocalDate.now();
@@ -62,8 +63,6 @@ public class MonthView extends JComponent implements MouseListener, MouseMotionL
         }
 
         // TODO iterate through dates to print numbers at the top of boxes and events
-        // ** have a counter that tracks the current column and have a factor to scale the x value by and multiply by the curr column
-        // ** have curr row counter also
         // ** add 1 to date, check if month == date.getMonth()
         // ** check events to see if null, if not print all events
         // ** add sort events to event creation snippet
@@ -80,68 +79,97 @@ public class MonthView extends JComponent implements MouseListener, MouseMotionL
             startColumn = 0;
         }
 
+        currDate = currDate.minusDays(startColumn);
+        startDateForMonth = currDate;
+
         // ROW TRACK
         for (int i = 0; i < 6; i++) {
             // COLUMN TRACK
             for (int j = 0; j < 7; j++) {
-                // start at correct column based on Day of Week
-                if (i == 0 && setStart) {
-                    j = startColumn;
-                    setStart = false;
+                // PRINT DAY OF WEEK AND DATE OF MONTH
+                if (currDate.compareTo(LocalDate.now()) == 0) {
+                    g.setColor(Color.RED);
+                    String dowAbv = currDate.getDayOfWeek().toString().substring(0, 3) + " " + currDate.getDayOfMonth();
+                    g.drawString(dowAbv, 20 + (xFactor * j), 65 + (yFactor * i));
+                } else if (currDate.getMonth().compareTo(date.getMonth()) != 0) {
+                    g.setColor(Color.LIGHT_GRAY); // TODO check color
+                    String dowAbv = currDate.getDayOfWeek().toString().substring(0, 3) + " " + currDate.getDayOfMonth();
+                    g.drawString(dowAbv, 20 + (xFactor * j), 65 + (yFactor * i));
+                } else {
+                    g.setColor(Color.GRAY);
+                    String dowAbv = currDate.getDayOfWeek().toString().substring(0, 3) + " " + currDate.getDayOfMonth();
+                    g.drawString(dowAbv, 20 + (xFactor * j), 65 + (yFactor * i));
                 }
-                String dowAbv = currDate.getDayOfWeek().toString().substring(0, 3) + " " + currDate.getDayOfMonth();
-                g.drawString(dowAbv, 20 + (xFactor * j), 65 + (yFactor * i));
-                System.out.println(currDate.getDayOfWeek() + ", " + currDate.getDayOfWeek().getValue());
+
+
+                // PRINT EVENTS
+                if (events.get(currDate) != null && currDate.getMonth().compareTo(date.getMonth()) == 0) {
+                    System.out.println("UPDATE: Event found on date.");
+                    int cellHeightRem = ((this.getHeight() - 50) / 6) - 30;
+                    int cellWidth = (this.getWidth() - 20) / 7;
+                    int eventsCounter = 0;
+
+                    if (cellHeightRem >= 25) {
+                        ArrayList<Event> eventsOnDate = events.get(currDate);
+                        for (Event event : eventsOnDate) {
+                            System.out.println("DEBUG: Cell Height Remaining: " + cellHeightRem);
+                            System.out.println("DEBUG: Printing Event: " + event);
+                            Color eventColor = new Color(95, 102, 87, 125);
+                            g.setColor(eventColor);
+
+                            event.setRect(new Rectangle(20 + (xFactor * j), 75 + (yFactor * i) + (eventsCounter * 30), cellWidth - 10, 25));
+                            g.fillRoundRect(20 + (xFactor * j), 75 + (yFactor * i) + (eventsCounter * 30), cellWidth - 10, 25, 20, 20);
+
+                            // TODO add text based on event.rect width (gets weird)
+                            g.setColor(Color.WHITE);
+                            g.drawString(event.eventName, 27 + (xFactor * j), 92 + (yFactor * i) + (eventsCounter * 30));
+
+                            eventsCounter++;
+                            cellHeightRem -= 30;
+                            System.out.println("DEBUG: Cell Height Remaining: " + cellHeightRem);
+                            if (cellHeightRem < 25) {
+                                System.out.println("ERROR: Cannot print more events, cell out of room.");
+                                break;
+                            }
+                        }
+                    }
+                }
+
+
+                // INCREMENT
                 currDate = currDate.plusDays(1);
             }
         }
 
 
-
-
-
-//        g.drawString("0:00", 10, 50);
-//        g.drawLine(50, 45, 2000, 45);
-
-//        int time = 0;
-//        int spacing = 50;
-//        for (int i = 0; i < 24; i++) {
-//            g.drawString(time + ":00", 10, spacing);
-//            g.drawLine(55, spacing-5, 2000, spacing-5);
-//            time++;
-//            spacing += 50;
-//        }
-
         // --------------------
         // ITERATE THROUGH EVENTS
         // --------------------
-        if (events.get(date) != null) {
-            System.out.println("Drawing main.java.myPackage.Event...");
-            int eventSpacing = 45;
-            ArrayList<Event> eventsOnDate = events.get(date);
-            for (Event event : eventsOnDate) {
-                String startTime = event.startTime;
-                String endTime = event.endTime;
-                double start;
-                double end;
-                start = getTime(startTime);
-                end = getTime(endTime);
-
-                System.out.println("Start Int: " + start + ", End Time: " + end);
-                int eventStartY = eventSpacing + (int)(50 * start);
-                Color eventColor = new Color(95, 102, 87, 125);
-                g.setColor(eventColor);
-                event.setRect(new Rectangle(60, eventStartY, 2000, (int)(50 * (end - start))));
-                g.fillRoundRect(60, eventStartY, 2000, (int)(50 * (end - start)), 20, 20);
-//                g.fillRect(55, eventStartY, 2000, (50 * (end - start)));
-
-                g.setColor(Color.black);
-                g.drawString(event.eventName, 70, eventStartY + 20);
-                // TODO add conditional around rect to display time
-                // TODO change font size here
-                g.drawString(event.startTime + " - " + event.endTime, 70, eventStartY + 35);
-            }
-        }
+//        if (events.get(date) != null) {
+//            System.out.println("Drawing main.java.myPackage.Event...");
+//            int eventSpacing = 45;
+//            ArrayList<Event> eventsOnDate = events.get(date);
+//            for (Event event : eventsOnDate) {
+//                String startTime = event.startTime;
+//                String endTime = event.endTime;
+//                double start;
+//                double end;
+//                start = getTime(startTime);
+//                end = getTime(endTime);
+//
+//                System.out.println("Start Int: " + start + ", End Time: " + end);
+//                int eventStartY = eventSpacing + (int)(50 * start);
+//                Color eventColor = new Color(95, 102, 87, 125);
+//                g.setColor(eventColor);
+//                event.setRect(new Rectangle(60, eventStartY, 2000, (int)(50 * (end - start))));
+//                g.fillRoundRect(60, eventStartY, 2000, (int)(50 * (end - start)), 20, 20);
+////                g.fillRect(55, eventStartY, 2000, (50 * (end - start)));
+//
+//                g.setColor(Color.black);
+//                g.drawString(event.eventName, 70, eventStartY + 20);
+//                g.drawString(event.startTime + " - " + event.endTime, 70, eventStartY + 35);
+//            }
+//        }
     }
 
     private double getTime(String time) {
@@ -176,12 +204,23 @@ public class MonthView extends JComponent implements MouseListener, MouseMotionL
     }
 
     public void update(int DAY_MONTH_SETTING) {
-        System.out.println("Update view with date: " + date + ", setting: " + DAY_MONTH_SETTING);
+        System.out.println("UPDATE: Repainting MonthView");
         this.repaint();
     }
 
     public String dateToString() {
         return date.getMonth() + ", " + date.getYear();
+    }
+
+    public LocalDate calculateDate(int x, int y) {
+        int gridX = (x - 10) / ((this.getWidth() - 20) / 7) + 1;
+        int gridY = (y - 50) / ((this.getHeight() - 50) / 6) + 1;
+        System.out.println("DEBUG: Mouse Clicked in Box: " + gridX + ", " + gridY);
+
+        int addDays = (gridX - 1) + (7 * (gridY - 1));
+        LocalDate returnDate = startDateForMonth.plusDays(addDays);
+        System.out.println("DEBUG: Mouse Clicked on Date: " + returnDate);
+        return returnDate;
     }
 
     // --------------------
@@ -196,9 +235,7 @@ public class MonthView extends JComponent implements MouseListener, MouseMotionL
     public void mouseReleased(MouseEvent e) {}
 
     @Override
-    public void mouseEntered(MouseEvent e) {
-        System.out.println("mouse entry");
-    }
+    public void mouseEntered(MouseEvent e) { }
 
     @Override
     public void mouseExited(MouseEvent e) {}

@@ -69,8 +69,6 @@ public class Radar extends JFrame {
         f.setSize(800, 800);
         cp = new JPanel(new BorderLayout());
 
-        System.out.println(dayView.getDate());
-
         // create a menubar
         mb = new JMenuBar();
 
@@ -120,8 +118,7 @@ public class Radar extends JFrame {
             public void componentResized(ComponentEvent e) {
                 monthView.setPreferredSize( new Dimension(500, (int)cp.getBounds().getSize().getHeight()) );
                 monthView.setMinimumSize(monthView.getPreferredSize());
-                System.out.println("Window Resized.");
-                System.out.println("Month Dimensions: " + monthView.getWidth() + ", " + monthView.getHeight());
+                System.out.println("Window Resized (cp) - w:" + cp.getWidth() + ", h:" + cp.getHeight());
             }
         }
 
@@ -142,10 +139,10 @@ public class Radar extends JFrame {
                 if (e.getClickCount() % 2 == 0) {
 
                     System.out.println("Mouse Double-Clicked.");
+                    int x = e.getX();
+                    int y = e.getY();
 
                     if (events.get(dayView.getDate()) != null) {
-                        int x = e.getX();
-                        int y = e.getY();
                         ArrayList<Event> eventsOnDate = events.get(dayView.getDate());
                         for (Event event : eventsOnDate) {
                             if (event.rect.contains(x, y)) {
@@ -157,7 +154,6 @@ public class Radar extends JFrame {
                         System.out.println("You shouldn't be here on event clicked.");
                         createEventTime(y);
                     } else {
-                        int y = e.getY();
                         timeHour = 1;
                         createEventTime(y);
                     }
@@ -172,21 +168,20 @@ public class Radar extends JFrame {
 
 //        monthView.setPreferredSize( new Dimension(500, 1250));
 //        monthView.setMaximumSize(monthView.getPreferredSize());
-        monthView.setPreferredSize( new Dimension(500, (int)cp.getBounds().getSize().getHeight()) );
+        monthView.setPreferredSize( new Dimension((int)cp.getBounds().getSize().getWidth(), (int)cp.getBounds().getSize().getHeight()));
         monthView.setMinimumSize(monthView.getPreferredSize());
         monthView.setMap(events);
         monthView.addMouseListener(new MouseAdapter() {
             @Override
             public void mouseClicked(MouseEvent e) {
-                System.out.println("Mouse Clicked.");
                 if (e.getClickCount() % 2 == 0) {
+                    System.out.println("UPDATE: Mouse double clicked in monthView component.");
+                    int x = e.getX();
+                    int y = e.getY();
 
-                    System.out.println("Mouse Double-Clicked.");
-
-                    if (events.get(dayView.getDate()) != null) {
-                        int x = e.getX();
-                        int y = e.getY();
-                        ArrayList<Event> eventsOnDate = events.get(dayView.getDate());
+                    LocalDate clickedDate = monthView.calculateDate(x, y);
+                    if (events.get(clickedDate) != null) {
+                        ArrayList<Event> eventsOnDate = events.get(clickedDate);
                         for (Event event : eventsOnDate) {
                             if (event.rect.contains(x, y)) {
                                 eventsOnDate.remove(event);
@@ -194,13 +189,9 @@ public class Radar extends JFrame {
                                 return;
                             }
                         }
-                        System.out.println("You shouldn't be here on event clicked.");
-                        createEventTime(y);
-                    } else {
-                        int y = e.getY();
-                        timeHour = 1;
-                        createEventTime(y);
                     }
+                    System.out.println("DEBUG: Mouse clicked outside of date, running calculation...");
+                    createEventDate(clickedDate);
                 }
             }
 
@@ -216,8 +207,6 @@ public class Radar extends JFrame {
         scroll.setMinimumSize(scroll.getPreferredSize());
         scroll.setViewportView(DAY_MONTH_SETTING == 0 ? dayView : monthView);
 
-        System.out.println((int)f.getBounds().getSize().getHeight());
-
         dayView.update(DAY_MONTH_SETTING);
         monthView.update(DAY_MONTH_SETTING);
 
@@ -225,7 +214,9 @@ public class Radar extends JFrame {
         today.addActionListener(e -> {
             statusBarText.setText("BUTTON PRESSED: TODAY");
             dayView.setDate(LocalDate.now());
+            monthView.setDate(LocalDate.now());
             dayView.update(DAY_MONTH_SETTING);
+            monthView.update(DAY_MONTH_SETTING);
         });
 
         nextPrevContainer = new JPanel(new FlowLayout());
@@ -345,8 +336,9 @@ public class Radar extends JFrame {
 
             events.put(myEvent.eventDate,innerList);
             dayView.setMap(events);
+            monthView.setMap(events);
             dayView.update(DAY_MONTH_SETTING);
-            System.out.println(events.get(dayView.getDate()));
+            monthView.update(DAY_MONTH_SETTING);
             statusBarText.setText(myEvent.toString());
         } else {
             statusBarText.setText("NEW EVENT CREATION CANCELED");
@@ -363,6 +355,12 @@ public class Radar extends JFrame {
         System.out.println(y);
 
         Event newEvent = new Event("New Event", dayView.getDate(), y+":00", (y+1)+":00");
+        editEvent(newEvent);
+    }
+
+    public static void createEventDate(LocalDate date) {
+        // TODO add code here after doing calculations
+        Event newEvent = new Event("New Event", date, "12:00", "13:00");
         editEvent(newEvent);
     }
 }

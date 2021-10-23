@@ -1,0 +1,17 @@
+Still TODO:
+
+[3 points] If the text cannot fit in the horizontal space of an event, then it should show the portion that does fit with an ellipsis (…)
+[3 points] If the window is resized to a larger width, then more text should show
+
+[7 points] Click and drag on an existing event in the Month View: user can drag an event in real time around the calendar. On release of the drag, the date of the event should change and should be reflected on screen
+- [5 points]: real time click + drag on screen
+- [2 points]: successful event details change
+
+MINUS [30 points] for late submission.
+
+Current Grade: 100 - 41 = 59
+
+75% Project: AVG == 93 + 88 + x / 3
+
+Bonus:
+1 + 1
