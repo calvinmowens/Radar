@@ -1,8 +1,10 @@
-package main.java.myPackage;
+package main.java;
 
 import javax.swing.*;
 import java.awt.*;
+import java.awt.FontMetrics;
 import java.awt.event.*;
+import java.awt.geom.Point2D;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
@@ -14,6 +16,7 @@ public class MonthView extends JComponent implements MouseListener, MouseMotionL
     private LocalDateTime currentTime;
     private HashMap<LocalDate, ArrayList<Event>> events = new HashMap<LocalDate, ArrayList<Event>>();
     private LocalDate startDateForMonth;
+    private ArrayList<Point2D> gesturePoints = new ArrayList<>();
 
     public MonthView() {
         date = LocalDate.now();
@@ -36,7 +39,6 @@ public class MonthView extends JComponent implements MouseListener, MouseMotionL
     @Override
     public void paintComponent(Graphics g) {
         currentTime = LocalDateTime.now();
-        System.out.println("Month Dim (paintComponent()): " + this.getWidth() + ", " + this.getHeight());
 
         g.setColor(Color.lightGray);
         g.setFont(new Font("Calibri", Font.PLAIN, 18));
@@ -61,15 +63,6 @@ public class MonthView extends JComponent implements MouseListener, MouseMotionL
             g.drawLine(15 + verticalSpacing, 45, 15 + verticalSpacing, this.getHeight());
             verticalSpacing += xFactor;
         }
-
-        // TODO iterate through dates to print numbers at the top of boxes and events
-        // ** add 1 to date, check if month == date.getMonth()
-        // ** check events to see if null, if not print all events
-        // ** add sort events to event creation snippet
-        // ** do text width check during the printing of the events
-        // ** bring DoW abrev. when printing date #'s (Sun 1)
-        // ** text should not get larger with scaling, events have more room for more details, breakpoints later
-
 
         LocalDate currDate = date.withDayOfMonth(1);
         boolean setStart = true;
@@ -104,7 +97,6 @@ public class MonthView extends JComponent implements MouseListener, MouseMotionL
 
                 // PRINT EVENTS
                 if (events.get(currDate) != null && currDate.getMonth().compareTo(date.getMonth()) == 0) {
-                    System.out.println("UPDATE: Event found on date.");
                     int cellHeightRem = ((this.getHeight() - 50) / 6) - 30;
                     int cellWidth = (this.getWidth() - 20) / 7;
                     int eventsCounter = 0;
@@ -112,23 +104,36 @@ public class MonthView extends JComponent implements MouseListener, MouseMotionL
                     if (cellHeightRem >= 25) {
                         ArrayList<Event> eventsOnDate = events.get(currDate);
                         for (Event event : eventsOnDate) {
-                            System.out.println("DEBUG: Cell Height Remaining: " + cellHeightRem);
-                            System.out.println("DEBUG: Printing Event: " + event);
                             Color eventColor = new Color(95, 102, 87, 125);
                             g.setColor(eventColor);
-
                             event.setRect(new Rectangle(20 + (xFactor * j), 75 + (yFactor * i) + (eventsCounter * 30), cellWidth - 10, 25));
                             g.fillRoundRect(20 + (xFactor * j), 75 + (yFactor * i) + (eventsCounter * 30), cellWidth - 10, 25, 20, 20);
 
-                            // TODO add text based on event.rect width (gets weird)
                             g.setColor(Color.WHITE);
-                            g.drawString(event.eventName, 27 + (xFactor * j), 92 + (yFactor * i) + (eventsCounter * 30));
+
+                            int fontSpace = cellWidth - 20;
+                            FontMetrics metrics = g.getFontMetrics();
+                            if (metrics.stringWidth(event.eventName) > fontSpace) {
+
+                                String printString = "";
+                                fontSpace = fontSpace - metrics.stringWidth("...");
+                                for (char c : event.eventName.toCharArray()) {
+                                    fontSpace -= metrics.charWidth(c);
+                                    if (fontSpace >= 0) {
+                                        printString += c;
+                                    } else {
+                                        break;
+                                    }
+                                }
+                                printString += "...";
+                                g.drawString(printString, 27 + (xFactor * j), 92 + (yFactor * i) + (eventsCounter * 30));
+                            } else {
+                                g.drawString(event.eventName, 27 + (xFactor * j), 92 + (yFactor * i) + (eventsCounter * 30));
+                            }
 
                             eventsCounter++;
                             cellHeightRem -= 30;
-                            System.out.println("DEBUG: Cell Height Remaining: " + cellHeightRem);
                             if (cellHeightRem < 25) {
-                                System.out.println("ERROR: Cannot print more events, cell out of room.");
                                 break;
                             }
                         }
@@ -141,12 +146,21 @@ public class MonthView extends JComponent implements MouseListener, MouseMotionL
             }
         }
 
+        if (gesturePoints.size() > 1) {
+            for (int i = 0; i < gesturePoints.size() - 1; i++) {
+                Point2D point1 = gesturePoints.get(i);
+                Point2D point2 = gesturePoints.get(i + 1);
+
+                g.drawLine((int)point1.getX(), (int)point1.getY(), (int)point2.getX(), (int)point2.getY());
+            }
+        }
+
 
         // --------------------
         // ITERATE THROUGH EVENTS
         // --------------------
 //        if (events.get(date) != null) {
-//            System.out.println("Drawing main.java.myPackage.Event...");
+//            System.out.println("Drawing main.java.Event...");
 //            int eventSpacing = 45;
 //            ArrayList<Event> eventsOnDate = events.get(date);
 //            for (Event event : eventsOnDate) {
@@ -203,8 +217,11 @@ public class MonthView extends JComponent implements MouseListener, MouseMotionL
         this.events = events;
     }
 
+    public void setGesturePoints(ArrayList<Point2D> gesturePoints) {
+        this.gesturePoints = gesturePoints;
+    }
+
     public void update(int DAY_MONTH_SETTING) {
-        System.out.println("UPDATE: Repainting MonthView");
         this.repaint();
     }
 
@@ -215,11 +232,9 @@ public class MonthView extends JComponent implements MouseListener, MouseMotionL
     public LocalDate calculateDate(int x, int y) {
         int gridX = (x - 10) / ((this.getWidth() - 20) / 7) + 1;
         int gridY = (y - 50) / ((this.getHeight() - 50) / 6) + 1;
-        System.out.println("DEBUG: Mouse Clicked in Box: " + gridX + ", " + gridY);
 
         int addDays = (gridX - 1) + (7 * (gridY - 1));
         LocalDate returnDate = startDateForMonth.plusDays(addDays);
-        System.out.println("DEBUG: Mouse Clicked on Date: " + returnDate);
         return returnDate;
     }
 
@@ -242,7 +257,6 @@ public class MonthView extends JComponent implements MouseListener, MouseMotionL
 
     @Override
     public void mouseDragged(MouseEvent e) {
-        System.out.println("Mouse Dragged.");
     }
 
     @Override

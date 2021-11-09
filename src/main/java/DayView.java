@@ -1,8 +1,9 @@
-package main.java.myPackage;
+package main.java;
 
 import javax.swing.*;
 import java.awt.*;
 import java.awt.event.*;
+import java.awt.geom.Point2D;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
@@ -13,6 +14,7 @@ public class DayView extends JComponent implements MouseListener, MouseMotionLis
     private LocalDate date;
     private LocalDateTime currentTime;
     private HashMap<LocalDate, ArrayList<Event>> events = new HashMap<LocalDate, ArrayList<Event>>();
+    private ArrayList<Point2D> gesturePoints = new ArrayList<>();
 
     public DayView() {
         date = LocalDate.now();
@@ -56,18 +58,12 @@ public class DayView extends JComponent implements MouseListener, MouseMotionLis
         }
 
         if (events.get(date) != null) {
-            System.out.println("Drawing main.java.myPackage.Event...");
             int eventSpacing = 45;
             ArrayList<Event> eventsOnDate = events.get(date);
             for (Event event : eventsOnDate) {
-                String startTime = event.startTime;
-                String endTime = event.endTime;
-                double start;
-                double end;
-                start = getTime(startTime);
-                end = getTime(endTime);
+                double start = getTime(event.startTime.toString());
+                double end = getTime(event.endTime.toString());
 
-                System.out.println("Start Int: " + start + ", End Time: " + end);
                 int eventStartY = eventSpacing + (int)(50 * start);
                 Color eventColor = new Color(95, 102, 87, 125);
                 g.setColor(eventColor);
@@ -80,6 +76,15 @@ public class DayView extends JComponent implements MouseListener, MouseMotionLis
                 // TODO add conditional around rect to display time
                 // TODO change font size here
                 g.drawString(event.startTime + " - " + event.endTime, 70, eventStartY + 35);
+            }
+        }
+
+        if (gesturePoints.size() > 1) {
+            for (int i = 0; i < gesturePoints.size() - 1; i++) {
+                Point2D point1 = gesturePoints.get(i);
+                Point2D point2 = gesturePoints.get(i + 1);
+
+                g.drawLine((int)point1.getX(), (int)point1.getY(), (int)point2.getX(), (int)point2.getY());
             }
         }
     }
@@ -115,8 +120,11 @@ public class DayView extends JComponent implements MouseListener, MouseMotionLis
         this.events = events;
     }
 
+    public void setGesturePoints(ArrayList<Point2D> gesturePoints) {
+        this.gesturePoints = gesturePoints;
+    }
+
     public void update(int DAY_MONTH_SETTING) {
-        System.out.println("UPDATE: Repainting DayView");
         this.repaint();
     }
 
@@ -140,7 +148,6 @@ public class DayView extends JComponent implements MouseListener, MouseMotionLis
 
     @Override
     public void mouseEntered(MouseEvent e) {
-        System.out.println("mouse entry");
     }
 
     @Override
@@ -150,7 +157,6 @@ public class DayView extends JComponent implements MouseListener, MouseMotionLis
 
     @Override
     public void mouseDragged(MouseEvent e) {
-        System.out.println("Mouse Dragged.");
     }
 
     @Override

@@ -1,14 +1,16 @@
-package main.java.myPackage;
+package main.java;
 
 import javax.swing.*;
 import java.awt.*;
 import java.awt.event.*;
-//import java.awt.event.ActionEvent;
-//import java.awt.event.ActionListener;
+import java.awt.Point;
+import java.awt.geom.Point2D;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.time.temporal.ChronoUnit;
 import java.util.ArrayList;
 import java.util.HashMap;
+import dollar.*;
 
 public class Radar extends JFrame {
 
@@ -24,11 +26,17 @@ public class Radar extends JFrame {
     |   |   File
      */
 
-    // main.java.myPackage.DayView Object Declaration, initializes to LocalDate.now()
+    // main.java.DayView Object Declaration, initializes to LocalDate.now()
+    private DayView dayView2 = new DayView();
     static JScrollPane scroll;
     static DayView dayView = new DayView();
     static MonthView monthView = new MonthView();
     static int timeHour = LocalDateTime.now().getHour();
+
+    static DollarRecognizer dollar = new DollarRecognizer();
+    public static ArrayList<Point2D> gesturePoints = new ArrayList<>();
+    static Event targetEvent;
+    static LocalDate monthGestureTargetDate;
 
     static JMenuBar mb;
 
@@ -80,7 +88,6 @@ public class Radar extends JFrame {
         exit = new JMenuItem("Exit");
         exit.addActionListener(e -> {
             statusBarText.setText("EXIT, BYE BYE");
-            System.out.println("Frame disposed.");
             f.dispose();
         });
 
@@ -118,7 +125,7 @@ public class Radar extends JFrame {
             public void componentResized(ComponentEvent e) {
                 monthView.setPreferredSize( new Dimension(500, (int)cp.getBounds().getSize().getHeight()) );
                 monthView.setMinimumSize(monthView.getPreferredSize());
-                System.out.println("Window Resized (cp) - w:" + cp.getWidth() + ", h:" + cp.getHeight());
+                statusBarText.setText("Window Resized (cp) - w:" + cp.getWidth() + ", h:" + cp.getHeight());
             }
         }
 
@@ -135,10 +142,8 @@ public class Radar extends JFrame {
         dayView.addMouseListener(new MouseAdapter() {
             @Override
             public void mouseClicked(MouseEvent e) {
-                System.out.println("Mouse Clicked.");
                 if (e.getClickCount() % 2 == 0) {
 
-                    System.out.println("Mouse Double-Clicked.");
                     int x = e.getX();
                     int y = e.getY();
 
@@ -146,12 +151,13 @@ public class Radar extends JFrame {
                         ArrayList<Event> eventsOnDate = events.get(dayView.getDate());
                         for (Event event : eventsOnDate) {
                             if (event.rect.contains(x, y)) {
+                                statusBarText.setText("EDIT EVENT: " + event.eventName);
                                 eventsOnDate.remove(event);
                                 editEvent(event);
                                 return;
                             }
                         }
-                        System.out.println("You shouldn't be here on event clicked.");
+                        System.out.println("DEBUG: You shouldn't be here on event clicked.");
                         createEventTime(y);
                     } else {
                         timeHour = 1;
@@ -161,8 +167,47 @@ public class Radar extends JFrame {
             }
 
             @Override
-            public void mouseMoved(MouseEvent e) {
-                System.out.println("Mouse Dragged");
+            public void mousePressed(MouseEvent e) {
+                if (SwingUtilities.isRightMouseButton(e)) {
+                    if (events.get(dayView.getDate()) != null) {
+                        ArrayList<Event> eventsOnDate = events.get(dayView.getDate());
+                        for (Event event : eventsOnDate) {
+                            if (event.rect.contains(e.getX(), e.getY())) {
+                                targetEvent = event;
+                                return;
+                            }
+                        }
+                    }
+                }
+            }
+
+            @Override
+            public void mouseReleased(MouseEvent e) {
+                if (SwingUtilities.isRightMouseButton(e)) {
+                    if (gesturePoints.size() != 0) {
+                        Result gesture = dollar.recognize(gesturePoints);
+                        if (targetEvent != null) {
+                            handleGesture(gesture);
+                            statusBarText.setText("GESTURE: " + gesture.getName() + " -> " + targetEvent.eventName);
+                        } else {
+                            handleGesture(gesture);
+                            statusBarText.setText("GESTURE: " + gesture.getName() + " -> " + "NO TARGET EVENT");
+                        }
+                    }
+                    gesturePoints.clear();
+                    targetEvent = null;
+                    dayView.update(DAY_MONTH_SETTING);
+                }
+            }
+        });
+        dayView.addMouseMotionListener(new MouseMotionAdapter() {
+            @Override
+            public void mouseDragged(MouseEvent e) {
+                if (SwingUtilities.isRightMouseButton(e)) {
+                    gesturePoints.add(new Point2D.Double(e.getX(), e.getY()));
+                    dayView.setGesturePoints(gesturePoints);
+                    dayView.update(DAY_MONTH_SETTING);
+                }
             }
         });
 
@@ -175,7 +220,6 @@ public class Radar extends JFrame {
             @Override
             public void mouseClicked(MouseEvent e) {
                 if (e.getClickCount() % 2 == 0) {
-                    System.out.println("UPDATE: Mouse double clicked in monthView component.");
                     int x = e.getX();
                     int y = e.getY();
 
@@ -190,14 +234,55 @@ public class Radar extends JFrame {
                             }
                         }
                     }
-                    System.out.println("DEBUG: Mouse clicked outside of date, running calculation...");
+                    statusBarText.setText("CREATE EVENT IN MONTH VIEW");
                     createEventDate(clickedDate);
                 }
             }
 
             @Override
-            public void mouseMoved(MouseEvent e) {
-                System.out.println("Mouse Dragged");
+            public void mousePressed(MouseEvent e) {
+                if (SwingUtilities.isRightMouseButton(e)) {
+                    LocalDate clickedDate = monthView.calculateDate(e.getX(), e.getY());
+                    monthGestureTargetDate = clickedDate;
+                    if (events.get(clickedDate) != null) {
+                        ArrayList<Event> eventsOnDate = events.get(clickedDate);
+                        for (Event event : eventsOnDate) {
+                            if (event.rect.contains(e.getX(), e.getY())) {
+                                targetEvent = event;
+                                return;
+                            }
+                        }
+                    }
+                }
+            }
+
+            @Override
+            public void mouseReleased(MouseEvent e) {
+                if (SwingUtilities.isRightMouseButton(e)) {
+                    Result gesture = dollar.recognize(gesturePoints);
+                    if (targetEvent != null) {
+                        handleGesture(gesture);
+                        statusBarText.setText("GESTURE: " + gesture.getName() + " -> " + targetEvent.eventName);
+                    } else {
+
+                        statusBarText.setText("GESTURE: " + gesture.getName() + " -> " + "NO TARGET EVENT");
+                    }
+                    gesturePoints.clear();
+                    targetEvent = null;
+                    monthView.update(DAY_MONTH_SETTING);
+                }
+            }
+        });
+
+        monthView.addMouseMotionListener(new MouseMotionAdapter() {
+            @Override
+            public void mouseDragged(MouseEvent e) {
+                if (SwingUtilities.isRightMouseButton(e)) {
+                    statusBarText.setText("GESTURE STARTED");
+                    gesturePoints.add(new Point2D.Double(e.getX(), e.getY()));
+                    monthView.setGesturePoints(gesturePoints);
+                    monthView.update(DAY_MONTH_SETTING);
+                }
             }
         });
 
@@ -304,8 +389,8 @@ public class Radar extends JFrame {
             eventName = new JTextField(x.eventName);
             eventDate = new JTextField(x.eventDate.toString());
 //            JPanel timeContainer = new JPanel(new FlowLayout());
-            startTime = new JTextField(x.startTime);
-            endTime = new JTextField(x.endTime);
+            startTime = new JTextField(x.startTime.toString());
+            endTime = new JTextField(x.endTime.toString());
             option1 = new JCheckBox("School");
             option2 = new JCheckBox("Family + Friends");
             option3 = new JCheckBox("Church");
@@ -352,7 +437,6 @@ public class Radar extends JFrame {
 
     public static void createEventTime(int y) {
         y = (y - 50) / 50;
-        System.out.println(y);
 
         Event newEvent = new Event("New Event", dayView.getDate(), y+":00", (y+1)+":00");
         editEvent(newEvent);
@@ -362,5 +446,86 @@ public class Radar extends JFrame {
         // TODO add code here after doing calculations
         Event newEvent = new Event("New Event", date, "12:00", "13:00");
         editEvent(newEvent);
+    }
+
+    public static void handleGesture(Result gesture) {
+        if (DAY_MONTH_SETTING == 0) {
+            handleGesture(gesture, dayView.getDate());
+        } else {
+            handleGesture(gesture, monthGestureTargetDate);
+        }
+    }
+
+    public static void handleGesture(Result gesture, LocalDate targetDate) {
+        ArrayList<Event> eventsOnDate = events.get(targetDate);
+        switch (gesture.getName()) {
+            case "delete":
+                if (targetEvent != null) {
+                    eventsOnDate.remove(targetEvent);
+                    // status
+                    break;
+                }
+                // status
+                break;
+            case "circle":
+                ArrayList<Event> toRemove = new ArrayList<>();
+                for (Event event : eventsOnDate) {
+                    toRemove.add(event);
+                }
+                eventsOnDate.removeAll(toRemove);
+                // status
+                break;
+            case "left square bracket":
+                dayView.setDate(dayView.getDate().plusDays(1));
+                monthView.setDate(monthView.getDate().plusDays(1));
+                dayView.update(DAY_MONTH_SETTING);
+                // status
+                break;
+            case "right square bracket":
+                dayView.setDate(dayView.getDate().minusDays(1));
+                monthView.setDate(monthView.getDate().minusDays(1));
+                dayView.update(DAY_MONTH_SETTING);
+                // status
+                break;
+            case "caret":
+                if (targetEvent != null) {
+                    targetEvent.startTime = targetEvent.startTime.minusHours(1);
+                    targetEvent.endTime = targetEvent.endTime.minusHours(1); // this is dumb
+                    dayView.update(DAY_MONTH_SETTING);
+                    // status
+                }
+                break;
+            case "v":
+                if (targetEvent != null) {
+                    targetEvent.startTime = targetEvent.startTime.plusHours(1);
+                    targetEvent.endTime = targetEvent.endTime.plusHours(1);
+                    dayView.update(DAY_MONTH_SETTING);
+                    // status
+                }
+                break;
+            case "star":
+                break;
+            case "check":
+                break;
+            case "x":
+                break;
+            case "pigtail":
+                break;
+            default:
+                statusBarText.setText("INVALID GESTURE FOR EVENT VIEW");
+        }
+    }
+
+    public static void leftBracketDrawn() {
+        if (DAY_MONTH_SETTING == 0) {
+            dayView.getDate().plusDays(1);
+            // update
+        } else {
+
+        }
+    }
+
+    public DayView getDayView() {
+        return dayView2;
     }
 }

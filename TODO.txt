@@ -1,17 +1,8 @@
 Still TODO:
 
-[3 points] If the text cannot fit in the horizontal space of an event, then it should show the portion that does fit with an ellipsis (…)
-[3 points] If the window is resized to a larger width, then more text should show
+* Change gestures to only work with RMB
+* Change start and end times to Time LocalDateTime objects
+* Add month gestures
 
-[7 points] Click and drag on an existing event in the Month View: user can drag an event in real time around the calendar. On release of the drag, the date of the event should change and should be reflected on screen
-- [5 points]: real time click + drag on screen
-- [2 points]: successful event details change
-
-MINUS [30 points] for late submission.
-
-Current Grade: 100 - 41 = 59
-
-75% Project: AVG == 93 + 88 + x / 3
-
-Bonus:
-1 + 1
+75% Project: AVG == 93 + 88 + 58 + x + x2 / 5
+25% Quiz:
