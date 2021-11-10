@@ -104,7 +104,7 @@ public class MonthView extends JComponent implements MouseListener, MouseMotionL
                     if (cellHeightRem >= 25) {
                         ArrayList<Event> eventsOnDate = events.get(currDate);
                         for (Event event : eventsOnDate) {
-                            Color eventColor = new Color(95, 102, 87, 125);
+                            Color eventColor = getEventColor(event);
                             g.setColor(eventColor);
                             event.setRect(new Rectangle(20 + (xFactor * j), 75 + (yFactor * i) + (eventsCounter * 30), cellWidth - 10, 25));
                             g.fillRoundRect(20 + (xFactor * j), 75 + (yFactor * i) + (eventsCounter * 30), cellWidth - 10, 25, 20, 20);
@@ -126,8 +126,18 @@ public class MonthView extends JComponent implements MouseListener, MouseMotionL
                                     }
                                 }
                                 printString += "...";
+                                if (event.vacation == true) {
+                                    g.setColor(Color.white);
+                                } else {
+                                    g.setColor(Color.black);
+                                }
                                 g.drawString(printString, 27 + (xFactor * j), 92 + (yFactor * i) + (eventsCounter * 30));
                             } else {
+                                if (event.vacation == true) {
+                                    g.setColor(Color.white);
+                                } else {
+                                    g.setColor(Color.black);
+                                }
                                 g.drawString(event.eventName, 27 + (xFactor * j), 92 + (yFactor * i) + (eventsCounter * 30));
                             }
 
@@ -147,6 +157,7 @@ public class MonthView extends JComponent implements MouseListener, MouseMotionL
         }
 
         if (gesturePoints.size() > 1) {
+            g.setColor(Color.black);
             for (int i = 0; i < gesturePoints.size() - 1; i++) {
                 Point2D point1 = gesturePoints.get(i);
                 Point2D point2 = gesturePoints.get(i + 1);
@@ -236,6 +247,23 @@ public class MonthView extends JComponent implements MouseListener, MouseMotionL
         int addDays = (gridX - 1) + (7 * (gridY - 1));
         LocalDate returnDate = startDateForMonth.plusDays(addDays);
         return returnDate;
+    }
+
+    public Color getEventColor(Event event) {
+        Color eColor = new Color(241, 128, 45);
+        if (event.school == true) {
+            eColor = new Color(246, 246, 246);
+        }
+        if (event.friends == true) {
+            eColor = new Color(177, 215, 225);
+        }
+        if (event.church == true) {
+            eColor = new Color(84, 153, 171);
+        }
+        if (event.vacation == true) {
+            eColor = new Color(17, 55, 64);
+        }
+        return eColor;
     }
 
     // --------------------

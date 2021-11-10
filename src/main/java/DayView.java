@@ -65,13 +65,17 @@ public class DayView extends JComponent implements MouseListener, MouseMotionLis
                 double end = getTime(event.endTime.toString());
 
                 int eventStartY = eventSpacing + (int)(50 * start);
-                Color eventColor = new Color(95, 102, 87, 125);
+                Color eventColor = getEventColor(event);
                 g.setColor(eventColor);
                 event.setRect(new Rectangle(60, eventStartY, 2000, (int)(50 * (end - start))));
                 g.fillRoundRect(60, eventStartY, 2000, (int)(50 * (end - start)), 20, 20);
 //                g.fillRect(55, eventStartY, 2000, (50 * (end - start)));
 
-                g.setColor(Color.black);
+                if (event.vacation == true) {
+                    g.setColor(Color.white);
+                } else {
+                    g.setColor(Color.black);
+                }
                 g.drawString(event.eventName, 70, eventStartY + 20);
                 // TODO add conditional around rect to display time
                 // TODO change font size here
@@ -80,6 +84,7 @@ public class DayView extends JComponent implements MouseListener, MouseMotionLis
         }
 
         if (gesturePoints.size() > 1) {
+            g.setColor(Color.black);
             for (int i = 0; i < gesturePoints.size() - 1; i++) {
                 Point2D point1 = gesturePoints.get(i);
                 Point2D point2 = gesturePoints.get(i + 1);
@@ -130,6 +135,23 @@ public class DayView extends JComponent implements MouseListener, MouseMotionLis
 
     public String dateToString() {
         return date.getDayOfWeek() + ", " + date.getMonth() + " " + date.getDayOfMonth() + ", " + date.getYear();
+    }
+
+    public Color getEventColor(Event event) {
+        Color eColor = new Color(241, 128, 45);
+        if (event.school == true) {
+            eColor = new Color(246, 246, 246);
+        }
+        if (event.friends == true) {
+            eColor = new Color(177, 215, 225);
+        }
+        if (event.church == true) {
+            eColor = new Color(84, 153, 171);
+        }
+        if (event.vacation == true) {
+            eColor = new Color(17, 55, 64);
+        }
+        return eColor;
     }
 
     public void mouseClicked(MouseEvent e) {

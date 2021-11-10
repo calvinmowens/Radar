@@ -5,6 +5,7 @@ import java.awt.*;
 import java.awt.event.*;
 import java.awt.Point;
 import java.awt.geom.Point2D;
+import java.sql.SQLOutput;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.temporal.ChronoUnit;
@@ -188,10 +189,10 @@ public class Radar extends JFrame {
                         Result gesture = dollar.recognize(gesturePoints);
                         if (targetEvent != null) {
                             handleGesture(gesture);
-                            statusBarText.setText("GESTURE: " + gesture.getName() + " -> " + targetEvent.eventName);
+                            statusBarText.setText("GESTURE: " + gesture.getName() + " -> " + targetEvent.eventName + "SCORE: " + gesture.getScore());
                         } else {
                             handleGesture(gesture);
-                            statusBarText.setText("GESTURE: " + gesture.getName() + " -> " + "NO TARGET EVENT");
+                            statusBarText.setText("GESTURE: " + gesture.getName() + " -> " + "NO TARGET EVENT" + "SCORE: " + gesture.getScore());
                         }
                     }
                     gesturePoints.clear();
@@ -242,12 +243,16 @@ public class Radar extends JFrame {
             @Override
             public void mousePressed(MouseEvent e) {
                 if (SwingUtilities.isRightMouseButton(e)) {
-                    LocalDate clickedDate = monthView.calculateDate(e.getX(), e.getY());
-                    monthGestureTargetDate = clickedDate;
-                    if (events.get(clickedDate) != null) {
-                        ArrayList<Event> eventsOnDate = events.get(clickedDate);
+                    statusBarText.setText("RIGHT PRESSED");
+                    monthGestureTargetDate = monthView.calculateDate(e.getX(), e.getY());
+                    System.out.println("FOUND TARGET DATE: " + monthGestureTargetDate);
+                    if (events.get(monthGestureTargetDate) != null) {
+                        ArrayList<Event> eventsOnDate = events.get(monthGestureTargetDate);
+                        System.out.println(eventsOnDate);
                         for (Event event : eventsOnDate) {
+                            System.out.println(event.rect.contains(e.getX(), e.getY()));
                             if (event.rect.contains(e.getX(), e.getY())) {
+                                System.out.println("targetEvent set");
                                 targetEvent = event;
                                 return;
                             }
@@ -262,10 +267,10 @@ public class Radar extends JFrame {
                     Result gesture = dollar.recognize(gesturePoints);
                     if (targetEvent != null) {
                         handleGesture(gesture);
-                        statusBarText.setText("GESTURE: " + gesture.getName() + " -> " + targetEvent.eventName);
+                        statusBarText.setText("GESTURE: " + gesture.getName() + " -> " + targetEvent.eventName + "SCORE: " + gesture.getScore());
                     } else {
-
-                        statusBarText.setText("GESTURE: " + gesture.getName() + " -> " + "NO TARGET EVENT");
+                        handleGesture(gesture);
+                        statusBarText.setText("GESTURE: " + gesture.getName() + " -> " + "NO TARGET EVENT" + "SCORE: " + gesture.getScore());
                     }
                     gesturePoints.clear();
                     targetEvent = null;
@@ -414,12 +419,12 @@ public class Radar extends JFrame {
         int result = JOptionPane.showConfirmDialog(null, inputs, "NEW APPOINTMENT", JOptionPane.OK_CANCEL_OPTION);
 
         if (result == JOptionPane.OK_OPTION && startTime.getText().compareTo(endTime.getText()) != 0) {
-            Event myEvent = new Event(eventName.getText(), LocalDate.parse(eventDate.getText()), startTime.getText(), endTime.getText());
+            Event myEvent = new Event(eventName.getText(), LocalDate.parse(eventDate.getText()), startTime.getText(), endTime.getText(), option1.isSelected(), option2.isSelected(), option3.isSelected(), option4.isSelected());
             events.computeIfAbsent(myEvent.eventDate, k -> new ArrayList<Event>());
             ArrayList<Event> innerList = events.get(myEvent.eventDate);
             innerList.add(myEvent);
 
-            events.put(myEvent.eventDate,innerList);
+            events.put(myEvent.eventDate, innerList);
             dayView.setMap(events);
             monthView.setMap(events);
             dayView.update(DAY_MONTH_SETTING);
@@ -438,25 +443,25 @@ public class Radar extends JFrame {
     public static void createEventTime(int y) {
         y = (y - 50) / 50;
 
-        Event newEvent = new Event("New Event", dayView.getDate(), y+":00", (y+1)+":00");
+        Event newEvent = new Event("New Event", dayView.getDate(), y+":00", (y+1)+":00", false, false, false, false);
         editEvent(newEvent);
     }
 
     public static void createEventDate(LocalDate date) {
         // TODO add code here after doing calculations
-        Event newEvent = new Event("New Event", date, "12:00", "13:00");
+        Event newEvent = new Event("New Event", date, "12:00", "13:00", false, false, false, false);
         editEvent(newEvent);
     }
 
     public static void handleGesture(Result gesture) {
         if (DAY_MONTH_SETTING == 0) {
-            handleGesture(gesture, dayView.getDate());
+            handleGestureHelper(gesture, dayView.getDate());
         } else {
-            handleGesture(gesture, monthGestureTargetDate);
+            handleGestureHelper(gesture, monthGestureTargetDate);
         }
     }
 
-    public static void handleGesture(Result gesture, LocalDate targetDate) {
+    public static void handleGestureHelper(Result gesture, LocalDate targetDate) {
         ArrayList<Event> eventsOnDate = events.get(targetDate);
         switch (gesture.getName()) {
             case "delete":
@@ -476,41 +481,90 @@ public class Radar extends JFrame {
                 // status
                 break;
             case "left square bracket":
-                dayView.setDate(dayView.getDate().plusDays(1));
-                monthView.setDate(monthView.getDate().plusDays(1));
-                dayView.update(DAY_MONTH_SETTING);
-                // status
+                if (DAY_MONTH_SETTING == 0) {
+                    dayView.setDate(dayView.getDate().minusDays(1));
+                } else {
+                    monthView.setDate(monthView.getDate().minusMonths(1));
+                }
                 break;
+                // status
             case "right square bracket":
-                dayView.setDate(dayView.getDate().minusDays(1));
-                monthView.setDate(monthView.getDate().minusDays(1));
-                dayView.update(DAY_MONTH_SETTING);
-                // status
+                if (DAY_MONTH_SETTING == 0) {
+                    dayView.setDate(dayView.getDate().plusDays(1));
+                } else {
+                    monthView.setDate(monthView.getDate().plusMonths(1));
+                }
                 break;
+                // status
+
             case "caret":
-                if (targetEvent != null) {
+                if (targetEvent != null && DAY_MONTH_SETTING == 0) {
                     targetEvent.startTime = targetEvent.startTime.minusHours(1);
                     targetEvent.endTime = targetEvent.endTime.minusHours(1); // this is dumb
-                    dayView.update(DAY_MONTH_SETTING);
                     // status
                 }
                 break;
             case "v":
-                if (targetEvent != null) {
+                if (targetEvent != null && DAY_MONTH_SETTING == 0) {
                     targetEvent.startTime = targetEvent.startTime.plusHours(1);
                     targetEvent.endTime = targetEvent.endTime.plusHours(1);
-                    dayView.update(DAY_MONTH_SETTING);
                     // status
                 }
                 break;
+
             case "star":
+                if (targetEvent != null) {
+                    targetEvent.school = !targetEvent.school;
+                }
                 break;
             case "check":
+                if (targetEvent != null) {
+                    targetEvent.friends = !targetEvent.friends;
+                }
                 break;
             case "x":
+                if (targetEvent != null) {
+                    targetEvent.church = !targetEvent.church;
+                }
                 break;
             case "pigtail":
+                if (targetEvent != null) {
+                    targetEvent.vacation = !targetEvent.vacation;
+                }
                 break;
+            case "zig-zag":
+                if (targetEvent != null && DAY_MONTH_SETTING == 1) {
+                    if (gesture.getBoundingBox().getWidth() > gesture.getBoundingBox().getHeight()) {
+                        int daysAdd = 1;
+                        for (int i = targetEvent.eventDate.getDayOfWeek().getValue(); i < 6; i++) {
+                            Event newEvent = new Event(targetEvent.eventName, targetEvent.eventDate, targetEvent.startTime.toString(), targetEvent.endTime.toString(), targetEvent.school, targetEvent.friends, targetEvent.church, targetEvent.vacation);
+                            newEvent.eventDate = newEvent.eventDate.plusDays(daysAdd);
+                            if (newEvent.eventDate.getDayOfWeek().toString() == "Sunday") {
+                                break;
+                            }
+                            events.computeIfAbsent(newEvent.eventDate, k -> new ArrayList<Event>());
+                            ArrayList<Event> newList = events.get(newEvent.eventDate);
+                            newList.add(newEvent);
+                            events.put(newEvent.eventDate, newList);
+                            daysAdd++;
+                        }
+                    } else {
+                        int weeksAdd = 1;
+                        for (int i = targetEvent.eventDate.getDayOfWeek().getValue(); i < 6; i++) {
+                            Event newEvent = new Event(targetEvent.eventName, targetEvent.eventDate, targetEvent.startTime.toString(), targetEvent.endTime.toString(), targetEvent.school, targetEvent.friends, targetEvent.church, targetEvent.vacation);
+                            newEvent.eventDate = newEvent.eventDate.plusWeeks(weeksAdd);
+                            if (newEvent.eventDate.getMonth() == targetEvent.eventDate.getMonth()) {
+                                events.computeIfAbsent(newEvent.eventDate, k -> new ArrayList<Event>());
+                                ArrayList<Event> newList = events.get(newEvent.eventDate);
+                                newList.add(newEvent);
+                                events.put(newEvent.eventDate, newList);
+                                weeksAdd++;
+                            }
+                        }
+                    }
+                } else {
+                    System.out.println("ZIG ZAG WITH NO TARGET DATE");
+                }
             default:
                 statusBarText.setText("INVALID GESTURE FOR EVENT VIEW");
         }
